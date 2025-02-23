@@ -1,6 +1,4 @@
-﻿using System.Collections.Concurrent;
-
-class CombolistFilter
+﻿class CombolistFilter
 {
     //(Lọc combolist theo keyword)
     public static void FilterByKeyword(string inputFile, string outputFile, string keywordFile)
@@ -17,10 +15,11 @@ class CombolistFilter
             return;
         }
 
-        var keywords = File.ReadLines(keywordFile)
-                           .Select(k => k.Trim())
-                           .Where(k => !string.IsNullOrWhiteSpace(k))
-                           .ToHashSet(); // Dùng HashSet để tìm nhanh
+        // Đọc từ keywordFile vào HashSet để tìm nhanh
+        HashSet<string> keywords = new(File.ReadLines(keywordFile)
+                                           .Select(k => k.Trim())
+                                           .Where(k => !string.IsNullOrWhiteSpace(k)),
+                                       StringComparer.OrdinalIgnoreCase);
 
         if (keywords.Count == 0)
         {
@@ -28,25 +27,38 @@ class CombolistFilter
             return;
         }
 
-        var filteredLines = new ConcurrentBag<string>();
-
-        Parallel.ForEach(File.ReadLines(inputFile), line =>
+        try
         {
-            var parts = line.Split(':');
-            if (parts.Length >= 3 && parts[1].Contains("@"))
+            using StreamReader reader = new(inputFile);
+            using StreamWriter writer = new(outputFile);
+
+            string? line;
+            int totalLines = 0, matchedLines = 0;
+
+            while ((line = reader.ReadLine()) != null)
             {
-                foreach (var keyword in keywords)
+                var parts = line.Split(':');
+                if (parts.Length >= 3 && parts[1].Contains("@"))
                 {
-                    if (parts[1].Contains(keyword, StringComparison.OrdinalIgnoreCase))
+                    if (keywords.Any(keyword => parts[1].Contains(keyword, StringComparison.OrdinalIgnoreCase)))
                     {
-                        filteredLines.Add($"{parts[1]}:{parts[2]}");
-                        break; // Chỉ cần tìm thấy 1 keyword là đủ
+                        writer.WriteLine($"{parts[1]}:{parts[2]}");
+                        matchedLines++;
                     }
                 }
-            }
-        });
 
-        File.WriteAllLines(outputFile, filteredLines);
-        Console.WriteLine($"✅ Đã lọc combolist theo keyword. Kết quả lưu tại: {outputFile}");
+                totalLines++;
+                if (totalLines % 1_000_000 == 0) // Báo tiến trình mỗi 1 triệu dòng
+                {
+                    Console.WriteLine($"📌 Đã xử lý {totalLines:N0} dòng, lọc được {matchedLines:N0} dòng...");
+                }
+            }
+
+            Console.WriteLine($"✅ Hoàn thành! Tổng dòng: {totalLines:N0}, Đã lọc: {matchedLines:N0}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Lỗi khi lọc combolist: {ex.Message}");
+        }
     }
 }

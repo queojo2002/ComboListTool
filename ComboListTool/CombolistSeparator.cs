@@ -1,6 +1,4 @@
-﻿using System.Collections.Concurrent;
-
-class CombolistSeparator
+﻿class CombolistSeparator
 {
     //(Tách EMAIL:PASS & USER:PASS)
     public static void Separate(string inputFile, string emailOutputFile, string userOutputFile)
@@ -11,23 +9,44 @@ class CombolistSeparator
             return;
         }
 
-        var emailPassList = new ConcurrentBag<string>();
-        var userPassList = new ConcurrentBag<string>();
-
-        Parallel.ForEach(File.ReadLines(inputFile), line =>
+        try
         {
-            var parts = line.Split(':');
-            if (parts.Length == 2)
-            {
-                if (parts[0].Contains("@"))
-                    emailPassList.Add(line);
-                else
-                    userPassList.Add(line);
-            }
-        });
+            using StreamReader reader = new(inputFile);
+            using StreamWriter emailWriter = new(emailOutputFile);
+            using StreamWriter userWriter = new(userOutputFile);
 
-        File.WriteAllLines(emailOutputFile, emailPassList);
-        File.WriteAllLines(userOutputFile, userPassList);
-        Console.WriteLine($"✅ Đã phân loại email:pass và user:pass.");
+            string? line;
+            int totalLines = 0, emailCount = 0, userCount = 0;
+
+            while ((line = reader.ReadLine()) != null)
+            {
+                var parts = line.Split(':');
+                if (parts.Length == 2)
+                {
+                    if (parts[0].Contains("@"))
+                    {
+                        emailWriter.WriteLine(line);
+                        emailCount++;
+                    }
+                    else
+                    {
+                        userWriter.WriteLine(line);
+                        userCount++;
+                    }
+                }
+
+                totalLines++;
+                if (totalLines % 1_000_000 == 0) // Cứ mỗi 1 triệu dòng, báo tiến trình
+                {
+                    Console.WriteLine($"📌 Đã xử lý {totalLines:N0} dòng...");
+                }
+            }
+
+            Console.WriteLine($"✅ Hoàn thành! Tổng: {totalLines:N0} dòng, Email: {emailCount:N0}, User: {userCount:N0}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Lỗi khi xử lý file: {ex.Message}");
+        }
     }
 }

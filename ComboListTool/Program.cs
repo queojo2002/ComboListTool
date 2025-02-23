@@ -21,13 +21,12 @@ class Program
             switch (choice)
             {
                 case "1":
-                    Console.Write("Nhập đường dẫn file đầu vào: ");
-                    string inputMerge = Console.ReadLine();
+                    Console.Write("Nhập đường dẫn thư mục đầu vào: ");
+                    string inputFolder = Console.ReadLine();
                     Console.Write("Nhập đường dẫn file đầu ra: ");
-                    string outputMerge = Console.ReadLine();
-                    FileMerger.MergeFiles(inputMerge, outputMerge);
+                    string outputFile = Console.ReadLine();
+                    FileMerger.MergeFilesInDirectory(inputFolder, outputFile);
                     break;
-
                 case "2":
                     Console.Write("Nhập đường dẫn file đầu vào: ");
                     string inputModify = Console.ReadLine();
@@ -35,7 +34,6 @@ class Program
                     string outputModify = Console.ReadLine();
                     CombolistModifier.ProcessCombolist(inputModify, outputModify);
                     break;
-
                 case "3":
                     Console.Write("Nhập đường dẫn file combolist: ");
                     string inputFilter = Console.ReadLine();
